@@ -326,12 +326,31 @@
           const file = slots[i];
           th.replaceChildren();
           if (!file) {
+            const inner = document.createElement('span');
+            inner.className = 'th-inner';
+            const spacer = document.createElement('span');
+            inner.appendChild(spacer);
             const load = document.createElement('button');
             load.type = 'button';
             load.className = 'load';
             load.textContent = 'Load';
             load.addEventListener('click', () => promptLoad(i));
-            th.appendChild(load);
+            inner.appendChild(load);
+            const fresh = document.createElement('button');
+            fresh.type = 'button';
+            fresh.textContent = 'New';
+            fresh.addEventListener('click', () => {
+              slots[i] = {
+                name: 'new.po',
+                language: 'new',
+                entries: slots
+                  .filter((s) => s && s !== slots[i])
+                  .flatMap((s) => s.entries.map((e) => ({ msgid: e.msgid, msgstr: '' }))),
+              };
+              render();
+            });
+            inner.appendChild(fresh);
+            th.appendChild(inner);
             return;
           }
           const inner = document.createElement('span');
@@ -378,10 +397,15 @@
           msgidCell.textContent = msgid;
           tr.appendChild(msgidCell);
 
-          for (const entryMap of entryMaps) {
+          for (const [col, entryMap] of entryMaps.entries()) {
             const td = document.createElement('td');
             td.className = 'msgstr';
-            const entry = entryMap?.get(msgid);
+            let entry = entryMap?.get(msgid);
+            if (!entry && slots[col]) {
+              entry = { msgid, msgstr: '' };
+              slots[col].entries.push(entry);
+              entryMap?.set(msgid, entry);
+            }
             if (entry) {
               const input = document.createElement('textarea');
               input.rows = 1;
