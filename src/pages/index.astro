@@ -240,21 +240,10 @@
   <body>
     <header>
       <h1>Gettext Webview</h1>
-      <div id="toolbar">
-        <input type="file" id="file-input" accept=".po,.pot" multiple />
-        <input
-          type="text"
-          id="column-name"
-          placeholder="Column name"
-          aria-label="Column name"
-        />
-        <button type="button" id="load-button">Load</button>
-      </div>
       <button type="button" id="theme-toggle" aria-label="Toggle light or dark theme">🌙</button>
     </header>
     <div id="table-wrapper">
-      <div class="empty" id="placeholder">Load one or more .po / .pot files to begin.</div>
-      <table id="po-table" hidden>
+      <table id="po-table">
         <colgroup>
           <col style="width: 15%" />
           <col style="width: 35%" />
@@ -269,19 +258,20 @@
         </thead>
         <tbody id="table-body"></tbody>
       </table>
+      <div class="empty" id="placeholder" hidden>Load a .po / .pot file into a column to begin.</div>
+      <input type="file" id="file-input" accept=".po,.pot" hidden />
     </div>
 
     <script>
       const fileInput = document.getElementById('file-input');
-      const columnName = document.getElementById('column-name');
-      const loadButton = document.getElementById('load-button');
       const table = document.getElementById('po-table');
       const tableBody = document.getElementById('table-body');
       const placeholder = document.getElementById('placeholder');
       const langA = document.getElementById('lang-a');
       const langB = document.getElementById('lang-b');
       const themeToggle = document.getElementById('theme-toggle');
-      const files = [];
+      const slots = [null, null];
+      let pendingSlot = 0;
 
       const applyTheme = (dark) => {
         document.documentElement.classList.toggle('dark', dark);
@@ -310,47 +300,50 @@
         URL.revokeObjectURL(url);
       }
 
-      loadButton.addEventListener('click', async () => {
+      fileInput.addEventListener('change', async () => {
         const { loadPoFile } = await import('../lib/po.ts');
-        const selected = Array.from(fileInput.files);
-        if (selected.length === 0) return;
-        const label = columnName.value.trim();
-        for (const file of selected) {
-          try {
-            const loaded = await loadPoFile(file);
-            if (label) loaded.language = label;
-            files.push(loaded);
-          } catch (err) {
-            console.error(`Failed to parse ${file.name}`, err);
-          }
+        const file = fileInput.files[0];
+        if (!file) return;
+        try {
+          slots[pendingSlot] = await loadPoFile(file);
+        } catch (err) {
+          console.error(`Failed to parse ${file.name}`, err);
         }
         fileInput.value = '';
-        columnName.value = '';
         render();
       });
 
-      fileInput.addEventListener('change', () => {
-        if (fileInput.files.length > 0 && !columnName.value.trim()) {
-          columnName.value = fileInput.files[0].name.replace(/\.(po|pot)$/i, '');
-        }
-      });
+      function promptLoad(slot) {
+        pendingSlot = slot;
+        fileInput.value = '';
+        fileInput.click();
+      }
 
       function render() {
-        const count = files.length;
-        table.hidden = count === 0;
-        placeholder.hidden = count > 0;
-        if (count === 0) return;
+        const loaded = slots.filter((s) => s !== null);
+        placeholder.hidden = loaded.length > 0;
         [langA, langB].forEach((th, i) => {
-          const file = files[i];
+          const file = slots[i];
           th.replaceChildren();
           if (!file) {
-            th.textContent = '—';
+            const load = document.createElement('button');
+            load.type = 'button';
+            load.className = 'load';
+            load.textContent = 'Load';
+            load.addEventListener('click', () => promptLoad(i));
+            th.appendChild(load);
             return;
           }
           const inner = document.createElement('span');
           inner.className = 'th-inner';
-          const name = document.createElement('span');
-          name.textContent = `${file.language} · ${file.name}`;
+          const name = document.createElement('input');
+          name.type = 'text';
+          name.className = 'lang-name';
+          name.value = file.language;
+          name.setAttribute('aria-label', 'Language name');
+          name.addEventListener('input', () => {
+            file.language = name.value;
+          });
           inner.appendChild(name);
           const download = document.createElement('button');
           download.type = 'button';
@@ -361,16 +354,21 @@
           unload.type = 'button';
           unload.textContent = 'Unload';
           unload.addEventListener('click', () => {
-            files.splice(files.indexOf(file), 1);
+            slots[i] = null;
             render();
           });
           inner.appendChild(unload);
           th.appendChild(inner);
         });
 
-        const msgids = [...new Set(files.flatMap((f) => f.entries.map((e) => e.msgid)))];
-        const entryMaps = files.map(
-          (f) => new Map(f.entries.map((e) => [e.msgid, e])),
+        if (loaded.length === 0) {
+          tableBody.replaceChildren();
+          return;
+        }
+
+        const msgids = [...new Set(loaded.flatMap((f) => f.entries.map((e) => e.msgid)))];
+        const entryMaps = slots.map(
+          (f) => (f ? new Map(f.entries.map((e) => [e.msgid, e])) : null),
         );
         const textareas = [];
         const rows = document.createDocumentFragment();
@@ -380,7 +378,7 @@
           msgidCell.textContent = msgid;
           tr.appendChild(msgidCell);
 
-          for (const entryMap of [entryMaps[0], entryMaps[1]]) {
+          for (const entryMap of entryMaps) {
             const td = document.createElement('td');
             td.className = 'msgstr';
             const entry = entryMap?.get(msgid);
@@ -417,6 +415,8 @@
           }
         });
       }
+
+      render();
     </script>
   </body>
 </html>
