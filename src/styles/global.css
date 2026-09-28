@@ -177,6 +177,21 @@
         color: #fbbf24;
         border-color: #fbbf24;
       }
+      td:first-child .err {
+        margin-right: 0.4rem;
+        cursor: help;
+      }
+      td:first-child.unknown {
+        color: var(--text-muted);
+      }
+      th .tpl-name {
+        font-size: 0.7rem;
+        font-weight: 500;
+        max-width: 8rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
       td.msgstr textarea.flash {
         outline: 2px solid #d97706;
         outline-offset: -2px;

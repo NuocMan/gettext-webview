@@ -5,15 +5,18 @@
       const langA = document.getElementById('lang-a');
       const langB = document.getElementById('lang-b');
       const themeToggle = document.getElementById('theme-toggle');
+      const templateActions = document.getElementById('template-actions');
       const STORAGE_KEY = 'gettext-webview:slots';
       const slots = [null, null];
+      let template = null;
       let pendingSlot = 0;
+      let pendingTemplate = false;
 
       function persist() {
         try {
           sessionStorage.setItem(
             STORAGE_KEY,
-            JSON.stringify(slots),
+            JSON.stringify({ slots, template }),
           );
         } catch {
           // storage full or unavailable: keep working in-memory
@@ -28,6 +31,10 @@
           if (Array.isArray(parsed) && parsed.length === 2) {
             slots[0] = parsed[0];
             slots[1] = parsed[1];
+          } else if (parsed && Array.isArray(parsed.slots)) {
+            slots[0] = parsed.slots[0] ?? null;
+            slots[1] = parsed.slots[1] ?? null;
+            template = parsed.template ?? null;
           }
         } catch {
           // corrupted data: start fresh
@@ -66,7 +73,12 @@
         const file = fileInput.files[0];
         if (!file) return;
         try {
-          slots[pendingSlot] = await loadPoFile(file);
+          const loaded = await loadPoFile(file);
+          if (pendingTemplate) {
+            template = loaded;
+          } else {
+            slots[pendingSlot] = loaded;
+          }
         } catch (err) {
           console.error(`Failed to parse ${file.name}`, err);
         }
@@ -77,6 +89,13 @@
 
       function promptLoad(slot) {
         pendingSlot = slot;
+        pendingTemplate = false;
+        fileInput.value = '';
+        fileInput.click();
+      }
+
+      function promptLoadTemplate() {
+        pendingTemplate = true;
         fileInput.value = '';
         fileInput.click();
       }
@@ -135,7 +154,32 @@
 
       function render() {
         const loaded = slots.filter((s) => s !== null);
-        placeholder.hidden = loaded.length > 0;
+        placeholder.hidden = loaded.length > 0 || template !== null;
+        templateActions.replaceChildren();
+        if (!template) {
+          const tplLoad = document.createElement('button');
+          tplLoad.type = 'button';
+          tplLoad.className = 'load';
+          tplLoad.textContent = 'Load';
+          tplLoad.title = 'Load a .pot template';
+          tplLoad.addEventListener('click', promptLoadTemplate);
+          templateActions.appendChild(tplLoad);
+        } else {
+          const tplTag = document.createElement('span');
+          tplTag.className = 'tpl-name';
+          tplTag.textContent = template.name;
+          tplTag.title = 'Template (.pot)';
+          templateActions.appendChild(tplTag);
+          const tplUnload = document.createElement('button');
+          tplUnload.type = 'button';
+          tplUnload.textContent = 'Unload';
+          tplUnload.addEventListener('click', () => {
+            template = null;
+            persist();
+            render();
+          });
+          templateActions.appendChild(tplUnload);
+        }
         [langA, langB].forEach((th, i) => {
           const file = slots[i];
           th.replaceChildren();
@@ -215,8 +259,22 @@
           return;
         }
 
-        renderedMsgids = [...new Set(loaded.flatMap((f) => f.entries.map((e) => e.msgid)))];
+        const templateIds = template ? template.entries.map((e) => e.msgid) : [];
+        const templateSet = new Set(templateIds);
+        const knownIds = [];
+        const unknownIds = [];
+        for (const msgid of new Set(loaded.flatMap((f) => f.entries.map((e) => e.msgid)))) {
+          if (template && !templateSet.has(msgid)) unknownIds.push(msgid);
+          else knownIds.push(msgid);
+        }
+        if (template) {
+          const knownSet = new Set(knownIds);
+          knownIds.length = 0;
+          for (const id of templateIds) if (knownSet.has(id)) knownIds.push(id);
+        }
+        renderedMsgids = [...knownIds, ...unknownIds];
         const msgids = renderedMsgids;
+        const unknownSet = new Set(unknownIds);
         jumpCursor[0] = -1;
         jumpCursor[1] = -1;
         const entryMaps = slots.map(
@@ -227,7 +285,15 @@
         for (const msgid of msgids) {
           const tr = document.createElement('tr');
           const msgidCell = document.createElement('td');
-          msgidCell.textContent = msgid;
+          if (unknownSet.has(msgid)) {
+            msgidCell.classList.add('unknown');
+            const icon = document.createElement('span');
+            icon.className = 'err';
+            icon.textContent = '⚠️';
+            icon.title = 'msgid not found in template (.pot)';
+            msgidCell.appendChild(icon);
+          }
+          msgidCell.appendChild(document.createTextNode(msgid));
           tr.appendChild(msgidCell);
 
           for (const [col, entryMap] of entryMaps.entries()) {
