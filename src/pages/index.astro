@@ -70,7 +70,8 @@
       td.msgstr {
         padding: 0;
       }
-      td.msgstr input {
+      td.msgstr textarea {
+        display: block;
         width: 100%;
         box-sizing: border-box;
         border: none;
@@ -78,12 +79,15 @@
         font: inherit;
         background: transparent;
         color: inherit;
+        resize: none;
+        overflow: hidden;
+        min-height: 1.4em;
       }
-      td.msgstr input:focus {
+      td.msgstr textarea:focus {
         outline: 2px solid #4a9;
         outline-offset: -2px;
       }
-      td.msgstr input.dirty {
+      td.msgstr textarea.dirty {
         background: #4a93;
       }
       .empty {
@@ -129,6 +133,11 @@
     <div id="table-wrapper">
       <div class="empty" id="placeholder">Load one or more .po / .pot files to begin.</div>
       <table id="po-table" hidden>
+        <colgroup>
+          <col style="width: 15%" />
+          <col style="width: 35%" />
+          <col style="width: 35%" />
+        </colgroup>
         <thead>
           <tr>
             <th>msgid</th>
@@ -225,14 +234,20 @@
             td.className = 'msgstr';
             const entry = file?.entries.find((e) => e.msgid === msgid);
             if (entry) {
-              const input = document.createElement('input');
-              input.type = 'text';
+              const input = document.createElement('textarea');
+              input.rows = 1;
               input.value = entry.msgstr;
               input.setAttribute('aria-label', `msgstr for "${msgid}"`);
+              const autoSize = () => {
+                input.style.height = 'auto';
+                input.style.height = `${input.scrollHeight}px`;
+              };
               input.addEventListener('input', () => {
                 entry.msgstr = input.value;
                 input.classList.add('dirty');
+                autoSize();
               });
+              requestAnimationFrame(autoSize);
               td.appendChild(input);
             } else {
               td.textContent = '';
