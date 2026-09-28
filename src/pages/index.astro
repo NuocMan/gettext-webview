@@ -168,6 +168,19 @@
         border-color: var(--accent);
         color: var(--accent);
       }
+      th button.warn {
+        color: #d97706;
+        border-color: #d97706;
+        white-space: nowrap;
+      }
+      :root.dark th button.warn {
+        color: #fbbf24;
+        border-color: #fbbf24;
+      }
+      td.msgstr textarea.flash {
+        outline: 2px solid #d97706;
+        outline-offset: -2px;
+      }
       th:first-child,
       td:first-child {
         border-radius: 10px 0 0 10px;
@@ -319,6 +332,58 @@
         fileInput.click();
       }
 
+      const warnButtons = [null, null];
+      const jumpCursor = [-1, -1];
+      let renderedMsgids = [];
+
+      function emptyCount(col) {
+        const file = slots[col];
+        if (!file) return 0;
+        const map = new Map(file.entries.map((e) => [e.msgid, e]));
+        return renderedMsgids.reduce(
+          (n, msgid) => n + ((map.get(msgid)?.msgstr ?? '') === '' ? 1 : 0),
+          0,
+        );
+      }
+
+      function refreshWarnings() {
+        for (const col of [0, 1]) {
+          const btn = warnButtons[col];
+          if (!btn) continue;
+          const n = emptyCount(col);
+          if (n > 0) {
+            btn.textContent = `⚠ ${n}`;
+            btn.hidden = false;
+          } else {
+            btn.hidden = true;
+          }
+        }
+      }
+
+      function jumpToNextEmpty(col) {
+        const file = slots[col];
+        if (!file) return;
+        const map = new Map(file.entries.map((e) => [e.msgid, e]));
+        const emptyIndexes = renderedMsgids
+          .map((msgid, idx) => ((map.get(msgid)?.msgstr ?? '') === '' ? idx : -1))
+          .filter((idx) => idx >= 0);
+        if (emptyIndexes.length === 0) return;
+        const next = emptyIndexes.find((idx) => idx > jumpCursor[col]);
+        const target = next !== undefined ? next : emptyIndexes[0];
+        jumpCursor[col] = target;
+        const row = tableBody.children[target];
+        const td = row?.children[col + 1];
+        const textarea = td?.querySelector('textarea');
+        if (textarea) {
+          row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          textarea.focus();
+          textarea.classList.remove('flash');
+          void textarea.offsetWidth;
+          textarea.classList.add('flash');
+          setTimeout(() => textarea.classList.remove('flash'), 1000);
+        }
+      }
+
       function render() {
         const loaded = slots.filter((s) => s !== null);
         placeholder.hidden = loaded.length > 0;
@@ -364,6 +429,13 @@
             file.language = name.value;
           });
           inner.appendChild(name);
+          const warn = document.createElement('button');
+          warn.type = 'button';
+          warn.className = 'warn';
+          warn.title = 'Jump to next empty msgstr';
+          warn.addEventListener('click', () => jumpToNextEmpty(i));
+          warnButtons[i] = warn;
+          inner.appendChild(warn);
           const download = document.createElement('button');
           download.type = 'button';
           download.textContent = 'Download';
@@ -385,7 +457,10 @@
           return;
         }
 
-        const msgids = [...new Set(loaded.flatMap((f) => f.entries.map((e) => e.msgid)))];
+        renderedMsgids = [...new Set(loaded.flatMap((f) => f.entries.map((e) => e.msgid)))];
+        const msgids = renderedMsgids;
+        jumpCursor[0] = -1;
+        jumpCursor[1] = -1;
         const entryMaps = slots.map(
           (f) => (f ? new Map(f.entries.map((e) => [e.msgid, e])) : null),
         );
@@ -421,6 +496,7 @@
                 entry.msgstr = input.value;
                 input.classList.add('dirty');
                 autoSize();
+                refreshWarnings();
               });
               textareas.push(input);
               td.appendChild(input);
@@ -438,6 +514,7 @@
             ta.closest('td').style.height = `${heights[i]}px`;
           }
         });
+        refreshWarnings();
       }
 
       render();
