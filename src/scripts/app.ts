@@ -259,23 +259,26 @@
           th.appendChild(inner);
         });
 
-        if (loaded.length === 0) {
+        if (loaded.length === 0 && !template) {
           tableBody.replaceChildren();
           return;
         }
 
         const templateIds = template ? template.entries.map((e) => e.msgid) : [];
         const templateSet = new Set(templateIds);
+        const loadedIds = new Set(loaded.flatMap((f) => f.entries.map((e) => e.msgid)));
         const knownIds = [];
         const unknownIds = [];
-        for (const msgid of new Set(loaded.flatMap((f) => f.entries.map((e) => e.msgid)))) {
+        for (const msgid of loadedIds) {
           if (template && !templateSet.has(msgid)) unknownIds.push(msgid);
           else knownIds.push(msgid);
         }
         if (template) {
           const knownSet = new Set(knownIds);
           knownIds.length = 0;
-          for (const id of templateIds) if (knownSet.has(id)) knownIds.push(id);
+          for (const id of templateIds) {
+            if (knownSet.has(id) || !loadedIds.has(id)) knownIds.push(id);
+          }
         }
         renderedMsgids = [...knownIds, ...unknownIds];
         const msgids = renderedMsgids;
