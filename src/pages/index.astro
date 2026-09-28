@@ -29,8 +29,17 @@
         font-size: 1.25rem;
         margin: 0;
       }
-      #file-input {
+      #toolbar {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
         margin-right: auto;
+      }
+      #column-name {
+        padding: 0.3rem 0.5rem;
+        border: 1px solid #8886;
+        border-radius: 4px;
+        font: inherit;
       }
       #table-wrapper {
         flex: 1;
@@ -74,7 +83,16 @@
   <body>
     <header>
       <h1>Gettext Webview</h1>
-      <input type="file" id="file-input" accept=".po,.pot" multiple />
+      <div id="toolbar">
+        <input type="file" id="file-input" accept=".po,.pot" multiple />
+        <input
+          type="text"
+          id="column-name"
+          placeholder="Column name"
+          aria-label="Column name"
+        />
+        <button type="button" id="load-button">Load</button>
+      </div>
       <div id="loaded-files"></div>
     </header>
     <div id="table-wrapper">
@@ -93,6 +111,8 @@
 
     <script>
       const fileInput = document.getElementById('file-input');
+      const columnName = document.getElementById('column-name');
+      const loadButton = document.getElementById('load-button');
       const table = document.getElementById('po-table');
       const tableBody = document.getElementById('table-body');
       const placeholder = document.getElementById('placeholder');
@@ -101,18 +121,29 @@
       const loadedFiles = document.getElementById('loaded-files');
       const files = [];
 
-      fileInput.addEventListener('change', async () => {
+      loadButton.addEventListener('click', async () => {
         const { loadPoFile } = await import('../lib/po.ts');
         const selected = Array.from(fileInput.files);
+        if (selected.length === 0) return;
+        const label = columnName.value.trim();
         for (const file of selected) {
           try {
-            files.push(await loadPoFile(file));
+            const loaded = await loadPoFile(file);
+            if (label) loaded.language = label;
+            files.push(loaded);
           } catch (err) {
             console.error(`Failed to parse ${file.name}`, err);
           }
         }
         fileInput.value = '';
+        columnName.value = '';
         render();
+      });
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0 && !columnName.value.trim()) {
+          columnName.value = fileInput.files[0].name.replace(/\.(po|pot)$/i, '');
+        }
       });
 
       function render() {
