@@ -14,6 +14,7 @@
         --text: #1a1c20;
         --text-muted: #6b7280;
         --border: #e2e5ea;
+        --border-strong: #c6ccd6;
         --accent: #3b82f6;
         --accent-soft: #3b82f61f;
         --header-bg: #ffffff;
@@ -27,6 +28,7 @@
         --text: #e5e7eb;
         --text-muted: #9ca3af;
         --border: #32363e;
+        --border-strong: #4d5360;
         --accent: #60a5fa;
         --accent-soft: #60a5fa2e;
         --header-bg: #1a1d22;
@@ -135,30 +137,36 @@
         position: sticky;
         top: 0;
         z-index: 2;
-        color: var(--text-muted);
+        color: var(--text);
         font-weight: 600;
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        border-top: none;
+        border: 2px solid var(--border-strong);
+        border-bottom: none;
       }
       th:first-child,
       td:first-child {
-        border-right: none;
         border-radius: 10px 0 0 10px;
       }
+      td:first-child {
+        border-right: none;
+      }
       th:first-child {
-        border-left: none;
+        border-radius: 10px 0 0 10px;
       }
       th:last-of-type,
       td:last-child {
         border-radius: 0 10px 10px 0;
+      }
+      td:last-child {
         border-left: none;
       }
-      th + th,
-      th:first-child {
-        border-bottom-color: var(--bg);
-        box-shadow: none;
+      th:last-of-type {
+        border-radius: 0 10px 10px 0;
+      }
+      th + th {
+        border-left: none;
       }
       td:first-child {
         font-family: ui-monospace, 'Cascadia Mono', monospace;
