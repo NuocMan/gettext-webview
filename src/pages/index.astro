@@ -221,6 +221,10 @@
         langB.textContent = files[1] ? files[1].language : '—';
 
         const msgids = [...new Set(files.flatMap((f) => f.entries.map((e) => e.msgid)))];
+        const entryMaps = files.map(
+          (f) => new Map(f.entries.map((e) => [e.msgid, e])),
+        );
+        const textareas = [];
         const rows = document.createDocumentFragment();
         for (const msgid of msgids) {
           const tr = document.createElement('tr');
@@ -232,7 +236,7 @@
           for (const file of [files[0], files[1]]) {
             const td = document.createElement('td');
             td.className = 'msgstr';
-            const entry = file?.entries.find((e) => e.msgid === msgid);
+            const entry = file ? entryMaps[files.indexOf(file)]?.get(msgid) : undefined;
             if (entry) {
               const input = document.createElement('textarea');
               input.rows = 1;
@@ -247,7 +251,7 @@
                 input.classList.add('dirty');
                 autoSize();
               });
-              requestAnimationFrame(autoSize);
+              textareas.push(input);
               td.appendChild(input);
             } else {
               td.textContent = '';
@@ -257,6 +261,10 @@
           rows.appendChild(tr);
         }
         tableBody.replaceChildren(rows);
+        const heights = textareas.map((ta) => ta.scrollHeight);
+        textareas.forEach((ta, i) => {
+          ta.style.height = `${heights[i]}px`;
+        });
       }
     </script>
   </body>
