@@ -134,6 +134,7 @@
       th {
         position: sticky;
         top: 0;
+        z-index: 2;
         color: var(--text-muted);
         font-weight: 600;
         font-size: 0.75rem;
@@ -167,6 +168,9 @@
       td.msgstr {
         padding: 0;
         position: relative;
+        border-radius: 0;
+      }
+      td.msgstr:last-child {
         border-radius: 0 10px 10px 0;
       }
       td.msgstr + td.msgstr {
