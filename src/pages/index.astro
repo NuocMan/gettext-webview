@@ -70,10 +70,13 @@
       }
       td.msgstr {
         padding: 0;
+        position: relative;
       }
       td.msgstr textarea {
-        display: block;
+        position: absolute;
+        inset: 0;
         width: 100%;
+        height: 100%;
         box-sizing: border-box;
         border: none;
         padding: 0.4rem 0.6rem;
@@ -82,7 +85,6 @@
         color: inherit;
         resize: none;
         overflow: hidden;
-        min-height: 1.4em;
       }
       td.msgstr textarea:focus {
         outline: 2px solid #4a9;
@@ -244,8 +246,10 @@
               input.value = entry.msgstr;
               input.setAttribute('aria-label', `msgstr for "${msgid}"`);
               const autoSize = () => {
-                input.style.height = 'auto';
-                input.style.height = `${input.scrollHeight}px`;
+                const needed = input.scrollHeight;
+                if (needed > td.offsetHeight) {
+                  td.style.height = `${needed}px`;
+                }
               };
               input.addEventListener('input', () => {
                 entry.msgstr = input.value;
@@ -264,7 +268,9 @@
         tableBody.replaceChildren(rows);
         const heights = textareas.map((ta) => ta.scrollHeight);
         textareas.forEach((ta, i) => {
-          ta.style.height = `${heights[i]}px`;
+          if (heights[i] > 0) {
+            ta.closest('td').style.height = `${heights[i]}px`;
+          }
         });
       }
     </script>
