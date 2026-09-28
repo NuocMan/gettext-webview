@@ -8,26 +8,59 @@
     <title>Gettext Webview</title>
     <style is:global>
       :root {
-        color-scheme: light dark;
+        --bg: #f4f5f7;
+        --surface: #ffffff;
+        --surface-hover: #eef0f3;
+        --text: #1a1c20;
+        --text-muted: #6b7280;
+        --border: #e2e5ea;
+        --accent: #3b82f6;
+        --accent-soft: #3b82f61f;
+        --header-bg: #ffffff;
+        --header-shadow: 0 1px 3px 0 #1a1c2014;
+        --card-shadow: 0 1px 2px 0 #1a1c2014;
+      }
+      :root.dark {
+        --bg: #14161a;
+        --surface: #1e2127;
+        --surface-hover: #262a31;
+        --text: #e5e7eb;
+        --text-muted: #9ca3af;
+        --border: #32363e;
+        --accent: #60a5fa;
+        --accent-soft: #60a5fa2e;
+        --header-bg: #1a1d22;
+        --header-shadow: 0 1px 3px 0 #00000059;
+        --card-shadow: 0 1px 2px 0 #00000059;
+      }
+      * {
+        box-sizing: border-box;
       }
       body {
         margin: 0;
-        font-family: system-ui, sans-serif;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        background: var(--bg);
+        color: var(--text);
         display: flex;
         flex-direction: column;
         height: 100vh;
+        transition: background 0.2s, color 0.2s;
       }
       header {
-        padding: 1rem;
-        border-bottom: 1px solid #8884;
+        padding: 0.9rem 1.25rem;
+        background: var(--header-bg);
+        box-shadow: var(--header-shadow);
         display: flex;
         gap: 1rem;
         align-items: center;
         flex-wrap: wrap;
+        z-index: 1;
       }
       header h1 {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
+        font-weight: 600;
         margin: 0;
+        letter-spacing: -0.01em;
       }
       #toolbar {
         display: flex;
@@ -35,42 +68,109 @@
         align-items: center;
         margin-right: auto;
       }
-      #column-name {
-        padding: 0.3rem 0.5rem;
-        border: 1px solid #8886;
-        border-radius: 4px;
+      #theme-toggle {
         font: inherit;
+        padding: 0.35rem 0.7rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+        line-height: 1;
+      }
+      #theme-toggle:hover {
+        background: var(--surface-hover);
+      }
+      button,
+      input[type='text'] {
+        font: inherit;
+      }
+      input[type='text'] {
+        padding: 0.4rem 0.6rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+      }
+      input[type='text']::placeholder {
+        color: var(--text-muted);
+      }
+      #load-button {
+        padding: 0.4rem 1rem;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      #load-button:hover {
+        filter: brightness(1.08);
       }
       #table-wrapper {
         flex: 1;
         overflow: auto;
+        padding: 1rem;
       }
       table {
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0 0.5rem;
         width: 100%;
         table-layout: fixed;
         font-size: 0.9rem;
       }
       th,
       td {
-        border: 1px solid #8884;
-        padding: 0.4rem 0.6rem;
         text-align: left;
         vertical-align: top;
         white-space: pre-wrap;
+        padding: 0.55rem 0.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+      }
+      td {
+        box-shadow: var(--card-shadow);
       }
       th {
         position: sticky;
         top: 0;
-        background: #2b2b2b;
-        color: #fff;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-top: none;
+      }
+      th:first-child,
+      td:first-child {
+        border-right: none;
+        border-radius: 10px 0 0 10px;
+      }
+      th:first-child {
+        border-left: none;
+      }
+      th:last-of-type,
+      td:last-child {
+        border-radius: 0 10px 10px 0;
+        border-left: none;
+      }
+      th + th,
+      th:first-child {
+        border-bottom-color: var(--bg);
+        box-shadow: none;
       }
       td:first-child {
-        font-family: ui-monospace, monospace;
+        font-family: ui-monospace, 'Cascadia Mono', monospace;
+        font-size: 0.8rem;
+        color: var(--text-muted);
       }
       td.msgstr {
         padding: 0;
         position: relative;
+        border-radius: 0 10px 10px 0;
+      }
+      td.msgstr + td.msgstr {
+        border-left: none;
       }
       td.msgstr textarea {
         position: absolute;
@@ -79,40 +179,49 @@
         height: 100%;
         box-sizing: border-box;
         border: none;
-        padding: 0.4rem 0.6rem;
+        border-radius: inherit;
+        padding: 0.55rem 0.75rem;
         font: inherit;
         background: transparent;
-        color: inherit;
+        color: var(--text);
         resize: none;
         overflow: hidden;
       }
       td.msgstr textarea:focus {
-        outline: 2px solid #4a9;
+        outline: 2px solid var(--accent);
         outline-offset: -2px;
       }
       td.msgstr textarea.dirty {
-        background: #4a93;
+        background: var(--accent-soft);
       }
       .empty {
-        padding: 2rem;
+        padding: 3rem;
         text-align: center;
-        color: #888;
+        color: var(--text-muted);
+      }
+      #loaded-files {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
       }
       .file-chip {
-        padding: 0.2rem 0.6rem;
-        border: 1px solid #8886;
+        padding: 0.25rem 0.7rem;
+        border: 1px solid var(--border);
         border-radius: 999px;
+        background: var(--surface);
         font-size: 0.8rem;
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
+        box-shadow: var(--card-shadow);
       }
       .file-chip button {
         font: inherit;
+        font-size: 0.8rem;
         padding: 0;
         border: none;
         background: none;
-        color: inherit;
+        color: var(--accent);
         text-decoration: underline;
         cursor: pointer;
       }
@@ -132,6 +241,7 @@
         <button type="button" id="load-button">Load</button>
       </div>
       <div id="loaded-files"></div>
+      <button type="button" id="theme-toggle" aria-label="Toggle light or dark theme">🌙</button>
     </header>
     <div id="table-wrapper">
       <div class="empty" id="placeholder">Load one or more .po / .pot files to begin.</div>
@@ -162,7 +272,35 @@
       const langA = document.getElementById('lang-a');
       const langB = document.getElementById('lang-b');
       const loadedFiles = document.getElementById('loaded-files');
+      const themeToggle = document.getElementById('theme-toggle');
       const files = [];
+
+      const applyTheme = (dark) => {
+        document.documentElement.classList.toggle('dark', dark);
+        themeToggle.textContent = dark ? '☀️' : '🌙';
+      };
+      const storedTheme = localStorage.getItem('theme');
+      applyTheme(
+        storedTheme
+          ? storedTheme === 'dark'
+          : window.matchMedia('(prefers-color-scheme: dark)').matches,
+      );
+      themeToggle.addEventListener('click', () => {
+        const dark = !document.documentElement.classList.contains('dark');
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+        applyTheme(dark);
+      });
+
+      async function downloadFile(file) {
+        const { poToString } = await import('../lib/po.ts');
+        const blob = new Blob([poToString(file)], { type: 'text/x-gettext-translation' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
 
       loadButton.addEventListener('click', async () => {
         const { loadPoFile } = await import('../lib/po.ts');
@@ -183,17 +321,6 @@
         render();
       });
 
-      async function downloadFile(file) {
-        const { poToString } = await import('../lib/po.ts');
-        const blob = new Blob([poToString(file)], { type: 'text/x-gettext-translation' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-
       fileInput.addEventListener('change', () => {
         if (fileInput.files.length > 0 && !columnName.value.trim()) {
           columnName.value = fileInput.files[0].name.replace(/\.(po|pot)$/i, '');
@@ -204,7 +331,6 @@
         const count = files.length;
         table.hidden = count === 0;
         placeholder.hidden = count > 0;
-        loadedFiles.innerHTML = '';
         loadedFiles.replaceChildren();
         for (const file of files) {
           const chip = document.createElement('span');
@@ -231,15 +357,14 @@
         const rows = document.createDocumentFragment();
         for (const msgid of msgids) {
           const tr = document.createElement('tr');
-
           const msgidCell = document.createElement('td');
           msgidCell.textContent = msgid;
           tr.appendChild(msgidCell);
 
-          for (const file of [files[0], files[1]]) {
+          for (const entryMap of [entryMaps[0], entryMaps[1]]) {
             const td = document.createElement('td');
             td.className = 'msgstr';
-            const entry = file ? entryMaps[files.indexOf(file)]?.get(msgid) : undefined;
+            const entry = entryMap?.get(msgid);
             if (entry) {
               const input = document.createElement('textarea');
               input.rows = 1;
