@@ -1,0 +1,152 @@
+---
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gettext Webview</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      header {
+        padding: 1rem;
+        border-bottom: 1px solid #8884;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      header h1 {
+        font-size: 1.25rem;
+        margin: 0;
+      }
+      #file-input {
+        margin-right: auto;
+      }
+      #table-wrapper {
+        flex: 1;
+        overflow: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.9rem;
+      }
+      th,
+      td {
+        border: 1px solid #8884;
+        padding: 0.4rem 0.6rem;
+        text-align: left;
+        vertical-align: top;
+        white-space: pre-wrap;
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: #2b2b2b;
+        color: #fff;
+      }
+      td:first-child {
+        font-family: ui-monospace, monospace;
+      }
+      .empty {
+        padding: 2rem;
+        text-align: center;
+        color: #888;
+      }
+      .file-chip {
+        padding: 0.2rem 0.6rem;
+        border: 1px solid #8886;
+        border-radius: 999px;
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Gettext Webview</h1>
+      <input type="file" id="file-input" accept=".po,.pot" multiple />
+      <div id="loaded-files"></div>
+    </header>
+    <div id="table-wrapper">
+      <div class="empty" id="placeholder">Load one or more .po / .pot files to begin.</div>
+      <table id="po-table" hidden>
+        <thead>
+          <tr>
+            <th>msgid</th>
+            <th id="lang-a"></th>
+            <th id="lang-b"></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <script>
+      const fileInput = document.getElementById('file-input');
+      const table = document.getElementById('po-table');
+      const tableBody = document.getElementById('table-body');
+      const placeholder = document.getElementById('placeholder');
+      const langA = document.getElementById('lang-a');
+      const langB = document.getElementById('lang-b');
+      const loadedFiles = document.getElementById('loaded-files');
+      const files = [];
+
+      fileInput.addEventListener('change', async () => {
+        const { loadPoFile } = await import('../lib/po.ts');
+        const selected = Array.from(fileInput.files);
+        for (const file of selected) {
+          try {
+            files.push(await loadPoFile(file));
+          } catch (err) {
+            console.error(`Failed to parse ${file.name}`, err);
+          }
+        }
+        fileInput.value = '';
+        render();
+      });
+
+      function render() {
+        const count = files.length;
+        table.hidden = count === 0;
+        placeholder.hidden = count > 0;
+        loadedFiles.innerHTML = '';
+        for (const file of files) {
+          const chip = document.createElement('span');
+          chip.className = 'file-chip';
+          chip.textContent = `${file.name} (${file.entries.length} entries)`;
+          loadedFiles.appendChild(chip);
+        }
+        if (count === 0) return;
+        langA.textContent = files[0].language;
+        langB.textContent = files[1] ? files[1].language : '—';
+
+        const msgids = [...new Set(files.flatMap((f) => f.entries.map((e) => e.msgid)))];
+        const rows = document.createDocumentFragment();
+        for (const msgid of msgids) {
+          const tr = document.createElement('tr');
+          for (const cell of [
+            msgid,
+            files[0].entries.find((e) => e.msgid === msgid)?.msgstr ?? '',
+            files[1]?.entries.find((e) => e.msgid === msgid)?.msgstr ?? '',
+          ]) {
+            const td = document.createElement('td');
+            td.textContent = cell;
+            tr.appendChild(td);
+          }
+          rows.appendChild(tr);
+        }
+        tableBody.replaceChildren(rows);
+      }
+    </script>
+  </body>
+</html>
