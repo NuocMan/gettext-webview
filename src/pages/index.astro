@@ -292,8 +292,34 @@
       const langA = document.getElementById('lang-a');
       const langB = document.getElementById('lang-b');
       const themeToggle = document.getElementById('theme-toggle');
+      const STORAGE_KEY = 'gettext-webview:slots';
       const slots = [null, null];
       let pendingSlot = 0;
+
+      function persist() {
+        try {
+          sessionStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify(slots),
+          );
+        } catch {
+          // storage full or unavailable: keep working in-memory
+        }
+      }
+
+      function restore() {
+        try {
+          const raw = sessionStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length === 2) {
+            slots[0] = parsed[0];
+            slots[1] = parsed[1];
+          }
+        } catch {
+          // corrupted data: start fresh
+        }
+      }
 
       const applyTheme = (dark) => {
         document.documentElement.classList.toggle('dark', dark);
@@ -332,6 +358,7 @@
           console.error(`Failed to parse ${file.name}`, err);
         }
         fileInput.value = '';
+        persist();
         render();
       });
 
@@ -440,6 +467,7 @@
           name.addEventListener('input', () => {
             file.language = name.value;
           });
+          name.addEventListener('change', persist);
           head.appendChild(name);
           inner.appendChild(head);
           const actions = document.createElement('span');
@@ -461,6 +489,7 @@
           unload.textContent = 'Unload';
           unload.addEventListener('click', () => {
             slots[i] = null;
+            persist();
             render();
           });
           actions.appendChild(unload);
@@ -513,6 +542,7 @@
                 input.classList.add('dirty');
                 autoSize();
                 refreshWarnings();
+                persist();
               });
               textareas.push(input);
               td.appendChild(input);
@@ -533,6 +563,7 @@
         refreshWarnings();
       }
 
+      restore();
       render();
     </script>
   </body>
