@@ -96,6 +96,18 @@
         border: 1px solid #8886;
         border-radius: 999px;
         font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .file-chip button {
+        font: inherit;
+        padding: 0;
+        border: none;
+        background: none;
+        color: inherit;
+        text-decoration: underline;
+        cursor: pointer;
       }
     </style>
   </head>
@@ -159,6 +171,17 @@
         render();
       });
 
+      async function downloadFile(file) {
+        const { poToString } = await import('../lib/po.ts');
+        const blob = new Blob([poToString(file)], { type: 'text/x-gettext-translation' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
       fileInput.addEventListener('change', () => {
         if (fileInput.files.length > 0 && !columnName.value.trim()) {
           columnName.value = fileInput.files[0].name.replace(/\.(po|pot)$/i, '');
@@ -170,10 +193,18 @@
         table.hidden = count === 0;
         placeholder.hidden = count > 0;
         loadedFiles.innerHTML = '';
+        loadedFiles.replaceChildren();
         for (const file of files) {
           const chip = document.createElement('span');
           chip.className = 'file-chip';
-          chip.textContent = `${file.name} (${file.entries.length} entries)`;
+          const label = document.createElement('span');
+          label.textContent = `${file.language} · ${file.name} (${file.entries.length} entries)`;
+          chip.appendChild(label);
+          const download = document.createElement('button');
+          download.type = 'button';
+          download.textContent = 'Download';
+          download.addEventListener('click', () => downloadFile(file));
+          chip.appendChild(download);
           loadedFiles.appendChild(chip);
         }
         if (count === 0) return;
