@@ -148,8 +148,17 @@
       th .th-inner {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 0.5rem;
+      }
+      th .th-inner .lang-head {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+      }
+      th .th-inner .actions {
+        display: flex;
+        gap: 0.35rem;
+        margin-left: auto;
       }
       th button {
         font: inherit;
@@ -393,14 +402,14 @@
           if (!file) {
             const inner = document.createElement('span');
             inner.className = 'th-inner';
-            const spacer = document.createElement('span');
-            inner.appendChild(spacer);
+            const actions = document.createElement('span');
+            actions.className = 'actions';
             const load = document.createElement('button');
             load.type = 'button';
             load.className = 'load';
             load.textContent = 'Load';
             load.addEventListener('click', () => promptLoad(i));
-            inner.appendChild(load);
+            actions.appendChild(load);
             const fresh = document.createElement('button');
             fresh.type = 'button';
             fresh.textContent = 'New';
@@ -414,12 +423,15 @@
               };
               render();
             });
-            inner.appendChild(fresh);
+            actions.appendChild(fresh);
+            inner.appendChild(actions);
             th.appendChild(inner);
             return;
           }
           const inner = document.createElement('span');
           inner.className = 'th-inner';
+          const head = document.createElement('span');
+          head.className = 'lang-head';
           const name = document.createElement('input');
           name.type = 'text';
           name.className = 'lang-name';
@@ -428,19 +440,22 @@
           name.addEventListener('input', () => {
             file.language = name.value;
           });
-          inner.appendChild(name);
+          head.appendChild(name);
+          inner.appendChild(head);
+          const actions = document.createElement('span');
+          actions.className = 'actions';
           const warn = document.createElement('button');
           warn.type = 'button';
           warn.className = 'warn';
           warn.title = 'Jump to next empty msgstr';
           warn.addEventListener('click', () => jumpToNextEmpty(i));
           warnButtons[i] = warn;
-          inner.appendChild(warn);
+          actions.appendChild(warn);
           const download = document.createElement('button');
           download.type = 'button';
           download.textContent = 'Download';
           download.addEventListener('click', () => downloadFile(file));
-          inner.appendChild(download);
+          actions.appendChild(download);
           const unload = document.createElement('button');
           unload.type = 'button';
           unload.textContent = 'Unload';
@@ -448,7 +463,8 @@
             slots[i] = null;
             render();
           });
-          inner.appendChild(unload);
+          actions.appendChild(unload);
+          inner.appendChild(actions);
           th.appendChild(inner);
         });
 
