@@ -67,6 +67,25 @@
       td:first-child {
         font-family: ui-monospace, monospace;
       }
+      td.msgstr {
+        padding: 0;
+      }
+      td.msgstr input {
+        width: 100%;
+        box-sizing: border-box;
+        border: none;
+        padding: 0.4rem 0.6rem;
+        font: inherit;
+        background: transparent;
+        color: inherit;
+      }
+      td.msgstr input:focus {
+        outline: 2px solid #4a9;
+        outline-offset: -2px;
+      }
+      td.msgstr input.dirty {
+        background: #4a93;
+      }
       .empty {
         padding: 2rem;
         text-align: center;
@@ -165,13 +184,28 @@
         const rows = document.createDocumentFragment();
         for (const msgid of msgids) {
           const tr = document.createElement('tr');
-          for (const cell of [
-            msgid,
-            files[0].entries.find((e) => e.msgid === msgid)?.msgstr ?? '',
-            files[1]?.entries.find((e) => e.msgid === msgid)?.msgstr ?? '',
-          ]) {
+
+          const msgidCell = document.createElement('td');
+          msgidCell.textContent = msgid;
+          tr.appendChild(msgidCell);
+
+          for (const file of [files[0], files[1]]) {
             const td = document.createElement('td');
-            td.textContent = cell;
+            td.className = 'msgstr';
+            const entry = file?.entries.find((e) => e.msgid === msgid);
+            if (entry) {
+              const input = document.createElement('input');
+              input.type = 'text';
+              input.value = entry.msgstr;
+              input.setAttribute('aria-label', `msgstr for "${msgid}"`);
+              input.addEventListener('input', () => {
+                entry.msgstr = input.value;
+                input.classList.add('dirty');
+              });
+              td.appendChild(input);
+            } else {
+              td.textContent = '';
+            }
             tr.appendChild(td);
           }
           rows.appendChild(tr);
