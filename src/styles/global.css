@@ -181,6 +181,12 @@
         margin-right: 0.4rem;
         cursor: help;
       }
+      td.msgstr.unknown {
+        background: var(--surface-hover);
+      }
+      td.msgstr.unknown textarea {
+        color: var(--text-muted);
+      }
       td:first-child.unknown {
         color: var(--text-muted);
       }

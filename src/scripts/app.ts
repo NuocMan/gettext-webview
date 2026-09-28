@@ -103,13 +103,16 @@
       const warnButtons = [null, null];
       const jumpCursor = [-1, -1];
       let renderedMsgids = [];
+      let renderedUnknown = new Set();
 
       function emptyCount(col) {
         const file = slots[col];
         if (!file) return 0;
         const map = new Map(file.entries.map((e) => [e.msgid, e]));
         return renderedMsgids.reduce(
-          (n, msgid) => n + ((map.get(msgid)?.msgstr ?? '') === '' ? 1 : 0),
+          (n, msgid) =>
+            n +
+            (!renderedUnknown.has(msgid) && (map.get(msgid)?.msgstr ?? '') === '' ? 1 : 0),
           0,
         );
       }
@@ -133,7 +136,9 @@
         if (!file) return;
         const map = new Map(file.entries.map((e) => [e.msgid, e]));
         const emptyIndexes = renderedMsgids
-          .map((msgid, idx) => ((map.get(msgid)?.msgstr ?? '') === '' ? idx : -1))
+          .map((msgid, idx) =>
+            !renderedUnknown.has(msgid) && (map.get(msgid)?.msgstr ?? '') === '' ? idx : -1,
+          )
           .filter((idx) => idx >= 0);
         if (emptyIndexes.length === 0) return;
         const next = emptyIndexes.find((idx) => idx > jumpCursor[col]);
@@ -275,6 +280,7 @@
         renderedMsgids = [...knownIds, ...unknownIds];
         const msgids = renderedMsgids;
         const unknownSet = new Set(unknownIds);
+        renderedUnknown = unknownSet;
         jumpCursor[0] = -1;
         jumpCursor[1] = -1;
         const entryMaps = slots.map(
@@ -299,6 +305,7 @@
           for (const [col, entryMap] of entryMaps.entries()) {
             const td = document.createElement('td');
             td.className = 'msgstr';
+            if (unknownSet.has(msgid)) td.classList.add('unknown');
             let entry = entryMap?.get(msgid);
             if (!entry && slots[col]) {
               entry = { msgid, msgstr: '' };
