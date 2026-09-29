@@ -57,6 +57,8 @@ export function poToString(loaded: LoadedPoFile): string {
       comments: [],
       extractedComments: [],
       flags: {},
+      metadata: {},
+      nplurals: 2,
       obsolete: false,
     })),
   };
